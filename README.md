@@ -72,3 +72,7 @@ To start the web UI, run the following command:
 ## Want to get involved? ##
 
 Please read our [Code of Conduct](CODE_OF_CONDUCT.md) then our [Contribution Guide](CONTRIBUTING.md).
+
+
+## Default Installation 
+install.py --instance_type=everyone --docker_volumes=/opt/concierge --compute_method=CPU --language_model=mistral --activity_logging=True --logging_directory=/opt/concierge/logs --log_retention=90
