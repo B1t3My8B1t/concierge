@@ -1,20 +1,22 @@
 import requests
-from concierge_backend_lib.collections import get_collections
-from pymilvus.exceptions import MilvusException
+import os
+from concierge_backend_lib.opensearch import get_client, get_collections
 
-def get_status():
+OLLAMA_HOST = os.getenv("OLLAMA_HOST") or "localhost"
+OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST") or "localhost"
+
+
+def check_ollama():
     try:
-        ollama_up = requests.get("http://localhost:11434/").status_code == 200
-    except:
-        ollama_up = False
+        return requests.get(f"http://{OLLAMA_HOST}:11434/").status_code == 200
+    except Exception:
+        return False
 
+
+def check_opensearch():
     try:
-        get_collections()
-        milvus_up = True
-    except MilvusException:
-        milvus_up = False
-
-    return {
-        "ollama": ollama_up,
-        "milvus": milvus_up
-    }
+        client = get_client()
+        get_collections(client)
+        return True
+    except Exception:
+        return False

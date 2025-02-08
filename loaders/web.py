@@ -1,20 +1,38 @@
+from __future__ import annotations
+from loaders.base_loader import ConciergeDocLoader, ConciergeDocument, get_current_time
+from dataclasses import dataclass
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
-from datetime import datetime
-import json
 
 
-date_time = datetime.now()
-str_date_time = date_time.isoformat()
+class WebLoader(ConciergeDocLoader):
+    @dataclass(kw_only=True)
+    class WebPageMetadata(ConciergeDocument.ConciergePage.PageMetadata):
+        title: str | None
+        language: str | None
+        source: str
 
-
-def load_web(url):
-    loader = RecursiveUrlLoader(url, max_depth=100)
-    pages = loader.load_and_split()
-    return [{
-        "metadata_type": "web",
-        "metadata": json.dumps({'source': x.metadata['source'], \
-                                'title':  None if 'title' not in x.metadata else x.metadata['title'], \
-                                'language':  None if 'language' not in x.metadata else x.metadata['language'], \
-                                'ingest_date': str_date_time}),
-        "content": x.page_content
-    } for x in pages]
+    @staticmethod
+    def load(full_path: str) -> ConciergeDocument:
+        date_time = get_current_time()
+        loader = RecursiveUrlLoader(full_path, max_depth=50)
+        pages = loader.load_and_split()
+        return ConciergeDocument(
+            metadata=ConciergeDocument.DocumentMetadata(
+                source=full_path, ingest_date=date_time, type="web"
+            ),
+            pages=[
+                ConciergeDocument.ConciergePage(
+                    metadata=WebLoader.WebPageMetadata(
+                        source=page.metadata["source"],
+                        title=None
+                        if "title" not in page.metadata
+                        else page.metadata["title"],
+                        language=None
+                        if "language" not in page.metadata
+                        else page.metadata["language"],
+                    ),
+                    content=page.page_content,
+                )
+                for page in pages
+            ],
+        )

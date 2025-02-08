@@ -1,5 +1,6 @@
-# .env file used to set local paths for Docker and scripts
+# config files used by Concierge
 .env
+concierge.yml
 
 # directory used by web server to store uploaded files
 uploads
@@ -25,3 +26,6 @@ __pycache__/
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+
+# package builds
+dist

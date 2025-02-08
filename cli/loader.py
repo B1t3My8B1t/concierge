@@ -1,39 +1,42 @@
-import platform
 import sys
-
-my_platform = platform.system()
-
-if my_platform == "Linux": # relative imports don't work the same on Windows and Linux!
-    sys.path.append('..')
-# TODO: check MacOS
-
 import os
-from loaders.pdf import load_pdf
-from concierge_backend_lib.collections import init_collection
-from concierge_backend_lib.ingesting import insert_with_tqdm
-import argparse
-import shutil
 
-upload_dir = os.path.join('..', 'uploads')
+# on Linux the parent directory isn't automatically included for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import argparse
+from concierge_backend_lib.opensearch import get_client, ensure_collection
+from concierge_backend_lib.ingesting import insert_with_tqdm
+from concierge_backend_lib.loading import load_file
+
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--source", required=True, 
-                    help="Path of the directory containing the files to ingest.")
-parser.add_argument("-c", "--collection", required=True,
-                    help="Milvus collection containing the vectorized data.")
+parser.add_argument(
+    "-s",
+    "--source",
+    required=True,
+    help="Path of the directory containing the files to ingest.",
+)
+parser.add_argument(
+    "-c",
+    "--collection",
+    required=True,
+    help="Collection containing the vectorized data.",
+)
 args = parser.parse_args()
 source_path = args.source
+collection = args.collection
 
 source_files = os.listdir(source_path)
-collection = init_collection(args.collection)
+
+client = get_client()
+ensure_collection(client, collection)
 
 for file in source_files:
-    shutil.copyfile(os.path.join(source_path, file), os.path.join(upload_dir, file))
     print(file)
-    pages = None
-    if file.endswith(".pdf"):
-        pages = load_pdf(upload_dir, file)
-    if pages:
-        insert_with_tqdm(pages, collection)
-
-collection.flush() # if we don't flush, the Web UI won't be able to grab recent changes
+    full_path = os.path.join(source_path, file)
+    with open(full_path, "rb") as f:
+        binary = f.read()
+    doc = load_file(full_path)
+    if doc:
+        insert_with_tqdm(client, collection, doc, binary)
